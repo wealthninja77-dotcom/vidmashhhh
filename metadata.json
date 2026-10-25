@@ -1,0 +1,6 @@
+{
+  "name": "VidMash AI - Zero-Watch Video Intelligence SaaS",
+  "description": "Autonomous multi-agent platform that turns hours of video into beautiful executive documents with interactive diagrams, data graphs, and forensic zero-loss summaries.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
