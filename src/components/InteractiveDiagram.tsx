@@ -3,200 +3,451 @@ import { SynthesizedDiagram, DiagramNode } from '../types/video';
 
 interface InteractiveDiagramProps {
   diagram: SynthesizedDiagram;
+  index?: number;
 }
 
-export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({ diagram }) => {
-  const [selectedNode, setSelectedNode] = useState<DiagramNode | null>(diagram.nodes[0] || null);
+export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({
+  diagram,
+  index = 0,
+}) => {
+  const [selectedNode, setSelectedNode] = useState<DiagramNode | null>(
+    diagram.nodes[0] || null
+  );
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [zoom, setZoom] = useState<number>(1);
 
   const nodeCount = diagram.nodes.length;
-  const svgWidth = Math.max(760, nodeCount * 170);
-  const svgHeight = 240;
+  // Use a 3-column serpentine blueprint layout so all nodes fit cleanly inside the viewport width
+  const colsPerRow = nodeCount <= 3 ? Math.max(1, nodeCount) : 3;
+  const totalRows = Math.ceil(nodeCount / colsPerRow);
+
+  const svgWidth = 780;
+  const rowHeight = 138;
+  const svgHeight = Math.max(190, totalRows * rowHeight + 44);
+  const nodeW = 192;
+  const nodeH = 82;
+
+  const colPositions =
+    colsPerRow === 1
+      ? [390]
+      : colsPerRow === 2
+      ? [230, 550]
+      : [138, 390, 642];
 
   const nodeCoords = diagram.nodes.map((node, i) => {
-    const spacing = (svgWidth - 140) / Math.max(1, nodeCount - 1);
-    const x = 70 + i * spacing;
-    const y = i % 2 === 0 ? 115 : 125;
-    return { ...node, x, y };
+    const row = Math.floor(i / colsPerRow);
+    const colInRow = i % colsPerRow;
+    // Serpentine ordering: even rows go left -> right, odd rows go right -> left
+    const effectiveCol = row % 2 === 0 ? colInRow : colsPerRow - 1 - colInRow;
+    const x = colPositions[effectiveCol] ?? 390;
+    const y = 70 + row * rowHeight;
+    return { ...node, index: i, row, col: effectiveCol, x, y };
   });
 
   const getRoleStyle = (role: DiagramNode['role']) => {
     switch (role) {
       case 'input':
-        return { bg: 'fill-white', stroke: 'stroke-[#111111]', text: 'text-[#111111]', badge: 'bg-[#F4F4F2] text-[#111111] border-[#E8E8E6]' };
+        return {
+          fill: '#FFFFFF',
+          stroke: '#111111',
+          accent: '#111111',
+          badgeBg: '#111111',
+          badgeText: '#FFFFFF',
+          tagClass: 'bg-[#111111] text-white',
+        };
       case 'process':
-        return { bg: 'fill-white', stroke: 'stroke-[#575754]', text: 'text-[#111111]', badge: 'bg-[#F4F4F2] text-[#575754] border-[#E8E8E6]' };
+        return {
+          fill: '#FFFFFF',
+          stroke: '#3D3C38',
+          accent: '#3D3C38',
+          badgeBg: '#EFECE6',
+          badgeText: '#111111',
+          tagClass: 'bg-[#EFECE6] text-[#111111] border border-[#E2E0D8]',
+        };
       case 'decision':
-        return { bg: 'fill-[#FAF8F5]', stroke: 'stroke-[#B45309]', text: 'text-[#92400E]', badge: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]' };
+        return {
+          fill: '#FFFDF5',
+          stroke: '#B45309',
+          accent: '#B45309',
+          badgeBg: '#FEF3C7',
+          badgeText: '#92400E',
+          tagClass: 'bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]',
+        };
       case 'database':
-        return { bg: 'fill-white', stroke: 'stroke-[#6366F1]', text: 'text-[#4338CA]', badge: 'bg-[#EEF2FF] text-[#4338CA] border-[#E0E7FF]' };
+        return {
+          fill: '#F8FAFF',
+          stroke: '#3730A3',
+          accent: '#3730A3',
+          badgeBg: '#E0E7FF',
+          badgeText: '#3730A3',
+          tagClass: 'bg-[#E0E7FF] text-[#3730A3] border border-[#C7D2FE]',
+        };
       case 'output':
-        return { bg: 'fill-[#F0FDF4]', stroke: 'stroke-[#15803D]', text: 'text-[#166534]', badge: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]' };
+        return {
+          fill: '#F4FDF7',
+          stroke: '#15803D',
+          accent: '#15803D',
+          badgeBg: '#DCFCE7',
+          badgeText: '#166534',
+          tagClass: 'bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0]',
+        };
       default:
-        return { bg: 'fill-white', stroke: 'stroke-[#E8E8E6]', text: 'text-[#111111]', badge: 'bg-[#F4F4F2] text-[#575754] border-[#E8E8E6]' };
+        return {
+          fill: '#FFFFFF',
+          stroke: '#575652',
+          accent: '#575652',
+          badgeBg: '#EFECE6',
+          badgeText: '#111111',
+          tagClass: 'bg-[#EFECE6] text-[#111111] border border-[#E2E0D8]',
+        };
     }
   };
 
   return (
-    <div className="rounded-3xl border border-[#E8E8E6] bg-white p-6 sm:p-8 shadow-[0_2px_8px_rgba(0,0,0,0.02)] print-break-inside-avoid">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8E8E6]">
+    <div className="group/diagram rounded-lg border border-[#E2E0D8] bg-white overflow-hidden print-break-inside-avoid shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:shadow-[0_10px_28px_rgba(17,17,17,0.07)] hover:border-[#C8C5BC] transition-all duration-300 ease-out">
+      {/* Header Bar */}
+      <div className="px-5 py-4 border-b border-[#E2E0D8] bg-[#FAF9F6] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="inline-block px-3 py-1 rounded-full bg-[#F4F4F2] text-[11px] font-mono font-medium text-[#575754] uppercase tracking-wider mb-2">
-            Auto-Generated Flowchart • {diagram.type}
+          <div className="text-[10.5px] font-mono uppercase tracking-wider text-[#787670] flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+            <span className="font-semibold text-[#111111] whitespace-nowrap">
+              FIG. 0{index + 1}
+            </span>
+            <span>·</span>
+            <span className="whitespace-nowrap">
+              ARCHITECTURAL TOPOLOGY ({diagram.type.replace('_', ' ')})
+            </span>
+            <span>·</span>
+            <span className="tabular-nums whitespace-nowrap">
+              {diagram.nodes.length} NODES / {diagram.edges.length} VECTORS
+            </span>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-[#EFECE6] text-[#111111] text-[9.5px] font-semibold whitespace-nowrap">
+              INTERACTIVE SVG
+            </span>
           </div>
-          <h4 className="text-xl font-semibold text-[#111111] tracking-tight">{diagram.title}</h4>
-          <p className="text-[13px] text-[#575754] mt-0.5">{diagram.caption}</p>
+          <h4 className="text-[17px] font-semibold text-[#111111] tracking-tight">
+            {diagram.title}
+          </h4>
+          <p className="text-[12.5px] text-[#4A4945] mt-0.5">{diagram.caption}</p>
         </div>
 
-        {/* Zoom controls */}
-        <div className="flex items-center gap-1.5 self-end sm:self-auto no-print">
+        {/* Zoom Controls */}
+        <div className="flex items-center gap-1 self-end sm:self-auto no-print">
           <button
             type="button"
-            onClick={() => setZoom((z) => Math.max(0.7, z - 0.15))}
-            className="p-1.5 rounded-full bg-[#F4F4F2] hover:bg-[#E8E8E6] text-[#575754] transition"
+            onClick={() => setZoom((z) => Math.max(0.85, z - 0.1))}
+            className="px-2 py-1 rounded bg-white border border-[#E2E0D8] hover:border-[#111111] text-[#4A4945] text-[11px] font-mono transition cursor-pointer"
             title="Zoom out"
           >
-            <span className="material-symbols-outlined text-[16px]">remove</span>
+            −
           </button>
-          <span className="text-[11px] font-mono text-[#8C8C89] px-1">{Math.round(zoom * 100)}%</span>
+          <span className="text-[11px] font-mono tabular-nums text-[#111111] px-2 font-medium">
+            {Math.round(zoom * 100)}%
+          </span>
           <button
             type="button"
-            onClick={() => setZoom((z) => Math.min(1.5, z + 0.15))}
-            className="p-1.5 rounded-full bg-[#F4F4F2] hover:bg-[#E8E8E6] text-[#575754] transition"
+            onClick={() => setZoom((z) => Math.min(1.3, z + 0.1))}
+            className="px-2 py-1 rounded bg-white border border-[#E2E0D8] hover:border-[#111111] text-[#4A4945] text-[11px] font-mono transition cursor-pointer"
             title="Zoom in"
           >
-            <span className="material-symbols-outlined text-[16px]">add</span>
+            +
           </button>
-          <button
-            type="button"
-            onClick={() => setZoom(1)}
-            className="p-1.5 rounded-full bg-[#F4F4F2] hover:bg-[#E8E8E6] text-[#8C8C89] hover:text-[#111111] transition ml-1"
-            title="Reset zoom"
-          >
-            <span className="material-symbols-outlined text-[16px]">refresh</span>
-          </button>
+          {zoom !== 1 && (
+            <button
+              type="button"
+              onClick={() => setZoom(1)}
+              className="px-2 py-1 rounded bg-white border border-[#E2E0D8] hover:border-[#111111] text-[#787670] hover:text-[#111111] text-[10px] font-mono uppercase transition ml-1 cursor-pointer"
+            >
+              100%
+            </button>
+          )}
         </div>
       </div>
 
-      {/* SVG Canvas Container */}
-      <div className="relative mt-5 overflow-x-auto rounded-2xl bg-[#F9F9F8] border border-[#E8E8E6] p-5 scrollbar-thin">
+      {/* Serpentine Blueprint SVG Canvas */}
+      <div
+        className="relative overflow-x-auto bg-[#F7F6F2] p-4 sm:p-6 border-b border-[#E2E0D8]"
+        style={{
+          backgroundImage: 'radial-gradient(#D5D3CA 1px, transparent 1px)',
+          backgroundSize: '16px 16px',
+        }}
+      >
         <div
-          style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', minWidth: `${svgWidth}px` }}
+          style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top center',
+          }}
           className="transition-transform duration-200"
         >
-          <svg width={svgWidth} height={svgHeight} className="overflow-visible">
+          <svg
+            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+            className="w-full h-auto min-w-[580px] overflow-visible"
+          >
             <defs>
               <marker
                 id={`arrow-${diagram.id}`}
                 viewBox="0 0 10 10"
-                refX="8"
+                refX="8.5"
                 refY="5"
                 markerWidth="6"
                 markerHeight="6"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1 L 9 5 L 0 9 z" fill="#111111" />
+                <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#111111" />
               </marker>
+              <filter
+                id={`shadow-${diagram.id}`}
+                x="-12%"
+                y="-12%"
+                width="124%"
+                height="130%"
+              >
+                <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodOpacity="0.06" />
+              </filter>
+              <filter
+                id={`shadow-hover-${diagram.id}`}
+                x="-20%"
+                y="-20%"
+                width="140%"
+                height="150%"
+              >
+                <feDropShadow dx="0" dy="7" stdDeviation="6" floodOpacity="0.16" />
+              </filter>
             </defs>
 
-            {/* Connecting Edges */}
+            {/* Connecting Edges with Smart Port Selection */}
             {diagram.edges.map((edge, idx) => {
               const fromNode = nodeCoords.find((n) => n.id === edge.from);
               const toNode = nodeCoords.find((n) => n.id === edge.to);
               if (!fromNode || !toNode) return null;
 
-              const startX = fromNode.x + 65;
-              const startY = fromNode.y;
-              const endX = toNode.x - 65;
-              const endY = toNode.y;
-              const midX = (startX + endX) / 2;
+              const isConnectedToHover =
+                hoveredNodeId === fromNode.id || hoveredNodeId === toNode.id;
+
+              const halfW = nodeW / 2;
+              const halfH = nodeH / 2;
+              let startX = fromNode.x;
+              let startY = fromNode.y;
+              let endX = toNode.x;
+              let endY = toNode.y;
+              let pathD = '';
+              let labelX = (fromNode.x + toNode.x) / 2;
+              let labelY = (fromNode.y + toNode.y) / 2;
+
+              if (fromNode.row === toNode.row) {
+                // Horizontal connection on the same row
+                const goingRight = toNode.x > fromNode.x;
+                startX = goingRight ? fromNode.x + halfW : fromNode.x - halfW;
+                endX = goingRight ? toNode.x - halfW - 3 : toNode.x + halfW + 3;
+                startY = fromNode.y;
+                endY = toNode.y;
+                pathD = `M ${startX} ${startY} L ${endX} ${endY}`;
+                labelX = (startX + endX) / 2;
+                labelY = startY - 11;
+              } else if (fromNode.col === toNode.col) {
+                // Vertical drop between rows in the same column
+                const goingDown = toNode.y > fromNode.y;
+                startX = fromNode.x;
+                endX = toNode.x;
+                startY = goingDown ? fromNode.y + halfH : fromNode.y - halfH;
+                endY = goingDown ? toNode.y - halfH - 3 : toNode.y + halfH + 3;
+                pathD = `M ${startX} ${startY} L ${endX} ${endY}`;
+                labelX = startX + 48;
+                labelY = (startY + endY) / 2 + 3;
+              } else {
+                // Diagonal / cross-row architectural connection
+                const goingDown = toNode.y > fromNode.y;
+                startX = fromNode.x;
+                startY = goingDown ? fromNode.y + halfH : fromNode.y - halfH;
+                endX = toNode.x;
+                endY = goingDown ? toNode.y - halfH - 3 : toNode.y + halfH + 3;
+                const midY = (startY + endY) / 2;
+                pathD = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+                labelX = (startX + endX) / 2;
+                labelY = midY - 4;
+              }
+
+              const shortLabel =
+                edge.label && edge.label.length > 18
+                  ? edge.label.slice(0, 16) + '…'
+                  : edge.label;
 
               return (
                 <g key={`edge-${idx}`}>
                   <path
-                    d={`M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`}
+                    d={pathD}
                     fill="none"
                     stroke="#111111"
-                    strokeWidth="1.5"
+                    strokeWidth={isConnectedToHover ? '2.3' : '1.6'}
                     strokeDasharray={edge.style === 'dashed' ? '4,4' : undefined}
                     markerEnd={`url(#arrow-${diagram.id})`}
-                    className="opacity-70 transition-opacity hover:opacity-100"
+                    className="transition-all duration-200"
                   />
-                  {edge.label && (
-                    <text
-                      x={midX}
-                      y={(startY + endY) / 2 - 8}
-                      textAnchor="middle"
-                      className="fill-[#575754] text-[10px] font-mono font-medium"
-                    >
-                      {edge.label}
-                    </text>
+                  {shortLabel && (
+                    <g>
+                      <rect
+                        x={labelX - Math.max(26, shortLabel.length * 3)}
+                        y={labelY - 9}
+                        width={Math.max(52, shortLabel.length * 6)}
+                        height="13"
+                        rx="2"
+                        fill={isConnectedToHover ? '#111111' : '#F7F6F2'}
+                        stroke={isConnectedToHover ? '#111111' : '#E2E0D8'}
+                        strokeWidth="0.75"
+                        className="transition-colors duration-200"
+                      />
+                      <text
+                        x={labelX}
+                        y={labelY}
+                        textAnchor="middle"
+                        fill={isConnectedToHover ? '#FFFFFF' : '#4A4945'}
+                        className="text-[8.5px] font-mono font-medium transition-colors duration-200"
+                      >
+                        {shortLabel}
+                      </text>
+                    </g>
                   )}
                 </g>
               );
             })}
 
-            {/* Nodes */}
+            {/* Interactive Flowchart Nodes with Smooth Hover Scale & Elevation Shadow */}
             {nodeCoords.map((node) => {
               const isSelected = selectedNode?.id === node.id;
+              const isHovered = hoveredNodeId === node.id;
               const styles = getRoleStyle(node.role);
+              const halfW = nodeW / 2;
+              const halfH = nodeH / 2;
+
+              // Split long labels cleanly across up to 2 lines instead of aggressive truncation
+              const words = node.label.split(' ');
+              let line1 = '';
+              let line2 = '';
+              for (const w of words) {
+                if ((line1 + ' ' + w).trim().length <= 24) {
+                  line1 = (line1 + ' ' + w).trim();
+                } else {
+                  line2 = (line2 + ' ' + w).trim();
+                }
+              }
+              if (line2.length > 26) {
+                line2 = line2.slice(0, 24) + '…';
+              }
 
               return (
                 <g
                   key={node.id}
                   transform={`translate(${node.x}, ${node.y})`}
                   onClick={() => setSelectedNode(node)}
-                  className="cursor-pointer group"
+                  onMouseEnter={() => setHoveredNodeId(node.id)}
+                  onMouseLeave={() => setHoveredNodeId(null)}
+                  className="cursor-pointer"
+                  data-testid={`flowchart-node-${node.id}`}
                 >
-                  {/* Outer box */}
-                  <rect
-                    x="-65"
-                    y="-40"
-                    width="130"
-                    height="80"
-                    rx="14"
-                    className={`${styles.bg} ${styles.stroke} stroke-[1.5] transition-all duration-200 group-hover:shadow-md ${
-                      isSelected ? 'stroke-[#111111] stroke-2 filter drop-shadow-md' : 'filter drop-shadow-[0_1px_3px_rgba(0,0,0,0.04)]'
-                    }`}
-                  />
-
-                  {/* Role badge */}
-                  <rect
-                    x="-55"
-                    y="-30"
-                    width="55"
-                    height="16"
-                    rx="4"
-                    fill="#F4F4F2"
-                  />
-                  <text
-                    x="-27.5"
-                    y="-19"
-                    textAnchor="middle"
-                    className="fill-[#575754] text-[9px] font-bold uppercase tracking-wider"
+                  {/* Inner group centered at (0,0) for smooth scale & drop-shadow elevation on hover */}
+                  <g
+                    style={{
+                      transform: isHovered
+                        ? 'scale(1.055) translateY(-2px)'
+                        : isSelected
+                        ? 'scale(1.015)'
+                        : 'scale(1)',
+                      transition:
+                        'transform 220ms cubic-bezier(0.22, 1, 0.36, 1), filter 220ms ease-out',
+                    }}
+                    filter={
+                      isHovered
+                        ? `url(#shadow-hover-${diagram.id})`
+                        : `url(#shadow-${diagram.id})`
+                    }
                   >
-                    {node.role}
-                  </text>
+                    {/* Node Card */}
+                    <rect
+                      x={-halfW}
+                      y={-halfH}
+                      width={nodeW}
+                      height={nodeH}
+                      rx="6"
+                      fill={styles.fill}
+                      stroke={isHovered || isSelected ? '#111111' : styles.stroke}
+                      strokeWidth={isHovered || isSelected ? '2.4' : '1.3'}
+                      className="transition-colors duration-200"
+                    />
 
-                  {/* Node label */}
-                  <text
-                    x="0"
-                    y="6"
-                    textAnchor="middle"
-                    className="fill-[#111111] font-semibold text-xs select-none pointer-events-none tracking-tight"
-                  >
-                    {node.label.length > 17 ? node.label.slice(0, 16) + '…' : node.label}
-                  </text>
+                    {/* Left Accent Bar */}
+                    <rect
+                      x={-halfW}
+                      y={-halfH}
+                      width="5"
+                      height={nodeH}
+                      rx="2"
+                      fill={styles.accent}
+                    />
 
-                  {/* Subtitle / detail */}
-                  <text
-                    x="0"
-                    y="22"
-                    textAnchor="middle"
-                    className="fill-[#8C8C89] text-[10px] select-none pointer-events-none"
-                  >
-                    {node.detail ? (node.detail.length > 20 ? node.detail.slice(0, 18) + '…' : node.detail) : 'Inspect'}
-                  </text>
+                    {/* Role & Step Header */}
+                    <rect
+                      x={-halfW + 13}
+                      y={-halfH + 8}
+                      width="64"
+                      height="14"
+                      rx="2.5"
+                      fill={styles.badgeBg}
+                    />
+                    <text
+                      x={-halfW + 45}
+                      y={-halfH + 18}
+                      textAnchor="middle"
+                      fill={styles.badgeText}
+                      className="text-[8px] font-mono font-semibold uppercase tracking-wider"
+                    >
+                      0{node.index + 1} · {node.role}
+                    </text>
+
+                    {/* Active / Hover Status Indicator */}
+                    {(isSelected || isHovered) && (
+                      <text
+                        x={halfW - 10}
+                        y={-halfH + 18}
+                        textAnchor="end"
+                        className="fill-[#111111] text-[8.5px] font-mono font-bold"
+                      >
+                        {isSelected ? 'ACTIVE' : 'INSPECT ↗'}
+                      </text>
+                    )}
+
+                    {/* Node Primary Title (1 or 2 lines) */}
+                    <text
+                      x={-halfW + 14}
+                      y={line2 ? -2 : 4}
+                      textAnchor="start"
+                      className="fill-[#111111] font-semibold text-[11px] select-none pointer-events-none"
+                    >
+                      {line1}
+                    </text>
+                    {line2 && (
+                      <text
+                        x={-halfW + 14}
+                        y={12}
+                        textAnchor="start"
+                        className="fill-[#111111] font-semibold text-[10.5px] select-none pointer-events-none"
+                      >
+                        {line2}
+                      </text>
+                    )}
+
+                    {/* Node Subtitle / Detail */}
+                    <text
+                      x={-halfW + 14}
+                      y={halfH - 9}
+                      textAnchor="start"
+                      className="fill-[#787670] text-[9px] font-mono select-none pointer-events-none"
+                    >
+                      {node.detail
+                        ? node.detail.length > 29
+                          ? node.detail.slice(0, 27) + '…'
+                          : node.detail
+                        : 'Click to inspect node'}
+                    </text>
+                  </g>
                 </g>
               );
             })}
@@ -204,35 +455,66 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({ diagram 
         </div>
       </div>
 
-      {/* Selected Node Details Drawer */}
-      {selectedNode && (
-        <div className="mt-5 p-4 rounded-2xl bg-[#F9F9F8] border border-[#E8E8E6] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
-          <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-[#111111] text-[20px] mt-0.5">info</span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-[#111111]">{selectedNode.label}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase font-mono font-semibold ${getRoleStyle(selectedNode.role).badge}`}>
+      {/* Interactive Node Stepper Bar */}
+      <div className="px-5 py-2.5 bg-[#FAF9F6] border-b border-[#E2E0D8] flex items-center gap-1.5 overflow-x-auto no-print">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-[#787670] mr-1 shrink-0">
+          Inspect Stage:
+        </span>
+        {diagram.nodes.map((n, idx) => {
+          const active = selectedNode?.id === n.id;
+          return (
+            <button
+              key={n.id}
+              type="button"
+              onClick={() => setSelectedNode(n)}
+              onMouseEnter={() => setHoveredNodeId(n.id)}
+              onMouseLeave={() => setHoveredNodeId(null)}
+              className={`px-2.5 py-1 rounded text-[11px] font-mono whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                active
+                  ? 'bg-[#111111] text-white font-semibold shadow-xs'
+                  : 'bg-white border border-[#E2E0D8] text-[#4A4945] hover:border-[#111111] hover:text-[#111111] hover:scale-[1.03] hover:shadow-xs'
+              }`}
+            >
+              0{idx + 1}. {n.label.length > 22 ? n.label.slice(0, 20) + '…' : n.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Bottom Inspector & Architectural Takeaway */}
+      <div className="p-4 sm:p-5 bg-white grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+        {selectedNode && (
+          <div className="md:col-span-7 flex items-start gap-3 pr-2 md:border-r md:border-[#E2E0D8]">
+            <div className="w-6 h-6 rounded bg-[#111111] text-white font-mono text-[11px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
+              0{diagram.nodes.findIndex((n) => n.id === selectedNode.id) + 1}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-[13.5px] text-[#111111]">
+                  {selectedNode.label}
+                </span>
+                <span
+                  className={`text-[9.5px] px-1.5 py-0.5 rounded uppercase font-mono font-semibold ${
+                    getRoleStyle(selectedNode.role).tagClass
+                  }`}
+                >
                   {selectedNode.role}
                 </span>
               </div>
-              <p className="text-[13px] text-[#575754] mt-0.5 leading-relaxed">
-                {selectedNode.detail || 'Core state pipeline step verified in synthesized video evidence.'}
+              <p className="text-[12.5px] text-[#4A4945] mt-1 leading-relaxed">
+                {selectedNode.detail ||
+                  'Verified component transition within the synthesized video architecture.'}
               </p>
             </div>
           </div>
+        )}
 
-          <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium self-end sm:self-auto">
-            <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
-            <span>Deterministic Verification</span>
-          </div>
+        <div className="md:col-span-5 text-[12.5px] text-[#4A4945] leading-relaxed">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#787670] block mb-0.5">
+            Architectural Mechanism
+          </span>
+          <p className="text-[#111111]">{diagram.explanation}</p>
         </div>
-      )}
-
-      {/* Explanation */}
-      <div className="mt-4 text-[13px] text-[#575754] leading-relaxed bg-[#F4F4F2] p-3.5 rounded-xl border border-[#E8E8E6]">
-        <strong className="text-[#111111]">Architectural Takeaway: </strong>
-        {diagram.explanation}
       </div>
     </div>
   );

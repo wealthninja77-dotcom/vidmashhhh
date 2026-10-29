@@ -5,7 +5,7 @@ export const EXEMPLAR_VIDEOS: SynthesizedDocument[] = [
     id: 'karpathy-state-of-gpt',
     meta: {
       title: 'State of GPT: Training Pipelines, RLHF, and LLM Mental Models',
-      originalVideoUrl: 'https://www.youtube.com/watch?v=bZQun8Y4L2W',
+      originalVideoUrl: 'https://www.youtube.com/watch?v=bZQun8Y4L2A',
       videoLengthMinutes: 105,
       readingTimeMinutes: 5,
       wordCountOriginal: 24800,
@@ -264,7 +264,7 @@ export const EXEMPLAR_VIDEOS: SynthesizedDocument[] = [
     id: 'jensen-blackwell-keynote',
     meta: {
       title: 'NVIDIA Blackwell GPU Architecture & The Generative AI Infrastructure Era',
-      originalVideoUrl: 'https://www.youtube.com/watch?v=Y2F809GQ51g',
+      originalVideoUrl: 'https://www.youtube.com/watch?v=Y2F8yisiS6E',
       videoLengthMinutes: 130,
       readingTimeMinutes: 6,
       wordCountOriginal: 31200,

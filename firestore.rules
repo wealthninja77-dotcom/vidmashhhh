@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Test connection document rule
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidId(userId);
+      allow delete: if false;
+    }
+
+    // Dossiers Collection
+    match /dossiers/{dossierId} {
+      // Anyone can read synthesized knowledge dossiers (public intelligence)
+      allow get, list: if true;
+
+      // Authenticated users or app client can create dossiers
+      allow create: if isValidId(dossierId) &&
+        incoming().title is string &&
+        incoming().title.size() <= 500 &&
+        incoming().id is string;
+
+      // Creator or admin can update
+      allow update: if isValidId(dossierId) && (
+        (isSignedIn() && existing().userId == request.auth.uid) ||
+        !('userId' in existing())
+      );
+
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+
+      // Chat queries subcollection
+      match /queries/{queryId} {
+        allow read: if true;
+        allow create: if isValidId(queryId) &&
+          incoming().question is string &&
+          incoming().question.size() <= 1000;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

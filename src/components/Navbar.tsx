@@ -1,89 +1,107 @@
 import React from 'react';
+import { User as FirebaseUser } from 'firebase/auth';
 
 interface NavbarProps {
-  onOpenPresentation?: () => void;
-  onPrint?: () => void;
-  activeDocTitle?: string;
-  onScrollToDemo?: () => void;
+  onResetHome?: () => void;
+  user?: FirebaseUser | null;
+  onSignIn?: () => void;
+  onSignOut?: () => void;
+  onOpenSavedDossiers?: () => void;
+  savedCount?: number;
+  activeDocumentTitle?: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  onOpenPresentation,
-  onPrint,
-  activeDocTitle,
-  onScrollToDemo,
+  onResetHome,
+  user,
+  onSignIn,
+  onSignOut,
+  onOpenSavedDossiers,
+  savedCount = 0,
+  activeDocumentTitle,
 }) => {
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#F9F9F8]/80 backdrop-blur-md border-b border-[#E8E8E6]/80 transition-all">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
-        {/* Logo */}
-        <a className="flex items-center gap-2.5 group cursor-pointer" href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-          <div className="w-8 h-8 rounded-full bg-[#111111] flex items-center justify-center text-white text-xs font-semibold tracking-tighter shadow-sm">
-            VM
-          </div>
-          <span className="font-semibold text-lg tracking-tight text-[#111111] group-hover:opacity-80 transition-opacity">
-            VidMash
-          </span>
-        </a>
-
-        {/* Center Minimal Links */}
-        <nav className="hidden md:flex items-center space-x-8 text-[14px] text-[#575754] font-medium">
-          <a className="hover:text-[#111111] transition-colors" href="#synthesis-engine">
-            Synthesis Engine
-          </a>
-          <a className="hover:text-[#111111] transition-colors" href="#knowledge-dossier">
-            Knowledge Dossier
-          </a>
-          <a className="hover:text-[#111111] transition-colors" href="#architecture">
-            Architecture
-          </a>
-          <a
-            className="hover:text-[#111111] transition-colors"
-            href="https://github.com/wealthninja77-dotcom/vidmash"
-            target="_blank"
-            rel="noopener noreferrer"
+    <header className="sticky top-0 z-40 w-full bg-[#F7F6F2]/95 backdrop-blur-md border-b border-[#E2E0D8] no-print">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 h-14 flex items-center justify-between gap-4">
+        {/* Left: Brand Masthead & Context Breadcrumb */}
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={onResetHome}
+            className="flex items-center gap-2.5 group cursor-pointer focus:outline-none shrink-0"
           >
-            GitHub
-          </a>
-        </nav>
+            <div className="w-6 h-6 rounded bg-[#111111] flex items-center justify-center text-white text-[11px] font-mono font-semibold tracking-tighter">
+              VM
+            </div>
+            <span className="font-semibold text-[15px] tracking-tight text-[#111111] group-hover:opacity-75 transition-opacity">
+              VidMash
+            </span>
+            <span className="hidden sm:inline-block text-[10px] font-mono uppercase tracking-widest text-[#787670] border-l border-[#E2E0D8] pl-2.5">
+              Monograph Engine
+            </span>
+          </button>
 
-        {/* Right CTAs */}
-        <div className="flex items-center gap-3">
-          {activeDocTitle && (
-            <>
-              {onOpenPresentation && (
-                <button
-                  type="button"
-                  onClick={onOpenPresentation}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium text-[#575754] hover:text-[#111111] bg-white border border-[#E8E8E6] hover:border-neutral-400 transition shadow-sm"
-                  title="Present as Executive Slides"
-                >
-                  <span className="material-symbols-outlined text-[17px]">present_to_all</span>
-                  <span>Slides</span>
-                </button>
-              )}
+          {activeDocumentTitle && (
+            <div className="hidden md:flex items-center gap-2 text-[12px] text-[#4A4945] min-w-0 border-l border-[#E2E0D8] pl-3">
+              <span className="text-[#787670] font-mono uppercase text-[10px] tracking-wider shrink-0">
+                Active Dossier
+              </span>
+              <span className="text-[#787670]">/</span>
+              <span className="font-medium text-[#111111] truncate max-w-[340px]">
+                {activeDocumentTitle}
+              </span>
+            </div>
+          )}
+        </div>
 
-              {onPrint && (
-                <button
-                  type="button"
-                  onClick={onPrint}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium text-[#575754] hover:text-[#111111] bg-white border border-[#E8E8E6] hover:border-neutral-400 transition shadow-sm"
-                  title="Export High-Fidelity PDF / Print"
-                >
-                  <span className="material-symbols-outlined text-[17px]">print</span>
-                  <span>Export PDF</span>
-                </button>
-              )}
-            </>
+        {/* Right: Library Vault & Authentication */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {onOpenSavedDossiers && (
+            <button
+              type="button"
+              onClick={onOpenSavedDossiers}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium text-[#111111] bg-white border border-[#E2E0D8] hover:border-[#111111] transition cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[15px] text-[#4A4945]">
+                library_books
+              </span>
+              <span>Vault</span>
+              <span className="px-1.5 py-0.5 bg-[#EFECE6] text-[#111111] text-[10px] font-mono tabular-nums rounded font-semibold">
+                {savedCount}
+              </span>
+            </button>
           )}
 
-          <a
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-[#111111] text-white text-[13px] font-medium tracking-tight hover:bg-neutral-800 transition-all shadow-sm cursor-pointer"
-            href="#demo"
-            onClick={onScrollToDemo}
-          >
-            Get started
-          </a>
+          {user ? (
+            <div className="flex items-center gap-2 pl-1">
+              {user.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName || 'User'}
+                  className="w-6 h-6 rounded border border-[#E2E0D8]"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded bg-[#111111] text-white text-[11px] font-mono font-semibold flex items-center justify-center">
+                  {(user.displayName || user.email || 'U')[0].toUpperCase()}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={onSignOut}
+                className="text-[12px] text-[#4A4945] hover:text-[#111111] font-medium transition cursor-pointer"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onSignIn}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#111111] text-white text-[12px] font-medium hover:bg-neutral-800 transition cursor-pointer"
+            >
+              <span>Sign in</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

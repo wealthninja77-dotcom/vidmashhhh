@@ -1,0 +1,74 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile in VidMash",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email address" },
+        "displayName": { "type": "string", "description": "User full name" },
+        "photoUrl": { "type": "string", "description": "User avatar image URL" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" }
+      },
+      "required": ["userId", "email"]
+    },
+    "Dossier": {
+      "title": "Dossier",
+      "description": "Synthesized zero-watch video intelligence document",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Dossier unique identifier" },
+        "userId": { "type": "string", "description": "Creator user UID or anonymous identifier" },
+        "title": { "type": "string", "maxLength": 500, "description": "Video title" },
+        "videoUrl": { "type": "string", "maxLength": 1000, "description": "Original video URL" },
+        "speaker": { "type": "string", "maxLength": 200, "description": "Primary speaker" },
+        "durationMinutes": { "type": "number", "description": "Original video length in minutes" },
+        "readingTimeMinutes": { "type": "number", "description": "Synthesized read duration" },
+        "compressionRatio": { "type": "number", "description": "Percentage of redundant time saved" },
+        "zeroLossFidelityIndex": { "type": "number", "description": "Zero loss completeness score" },
+        "meta": { "type": "object", "description": "Full metadata block" },
+        "executiveBriefing": { "type": "object", "description": "Crux, paradigm shift and risks" },
+        "cognitiveArchitectureAudit": { "type": "object", "description": "Entropy and signal audit" },
+        "diagrams": { "type": "array", "description": "Generated SVG and node-edge diagrams" },
+        "quantitativeGraphs": { "type": "array", "description": "Empirical metrics and scaling charts" },
+        "illustrationsAndMentalModels": { "type": "array", "description": "Mental model vectors" },
+        "chronologicalChapters": { "type": "array", "description": "Timestamped video chapters" },
+        "forensicMasterMatrix": { "type": "object", "description": "Formulas, trade-offs and audit checklist" },
+        "forensicMatrix": { "type": "object", "description": "Legacy alias for forensicMasterMatrix" },
+        "actionablePlaybook": { "type": "array", "description": "Step-by-step implementation guide" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "title", "createdAt"]
+    },
+    "ChatQuery": {
+      "title": "ChatQuery",
+      "description": "Semantic Q&A query grounded in video transcript",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Query unique ID" },
+        "dossierId": { "type": "string", "description": "Associated dossier ID" },
+        "userId": { "type": "string", "description": "User UID who asked" },
+        "question": { "type": "string", "maxLength": 1000, "description": "User question" },
+        "reply": { "type": "string", "description": "AI answer with citations" },
+        "timestampCitation": { "type": "string", "description": "Video timestamp citation" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Query timestamp" }
+      },
+      "required": ["id", "question", "reply", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile collection"
+    },
+    "/dossiers/{dossierId}": {
+      "schema": "Dossier",
+      "description": "Synthesized video intelligence dossiers"
+    },
+    "/dossiers/{dossierId}/queries/{queryId}": {
+      "schema": "ChatQuery",
+      "description": "Semantic Q&A interactions for a specific dossier"
+    }
+  }
+}
